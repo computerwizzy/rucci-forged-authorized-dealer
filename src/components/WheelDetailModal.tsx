@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { Wheel } from '@/types';
 import QuoteModal from './QuoteModal';
+import { renderFinishPreview, hasApproximatePreview } from '@/lib/finishPreview';
 
 interface Props {
   wheel: Wheel;
@@ -30,6 +31,8 @@ export default function WheelDetailModal({ wheel, onClose }: Props) {
   // Finish / cap picker (renders from Rucci's media library). null = the product photos.
   const [finish, setFinish]         = useState<string | null>(null);
   const [cap, setCap]               = useState<string | null>(null);
+  // Approximate preview (catalog photo re-coloured) for finishes Rucci has not rendered.
+  const [approx, setApprox]         = useState<{ finish: string; url: string } | null>(null);
 
   const detail    = wheel.detail;
   const variants  = detail?.variants ?? [];
@@ -46,8 +49,18 @@ export default function WheelDetailModal({ wheel, onClose }: Props) {
   const productImages = detail?.images?.length
     ? [wheel.imageUrl, ...detail.images]
     : [wheel.imageUrl];
-  const allImages = variant ? [variant.url] : productImages;
+  const approxUrl = finish && !variant && approx?.finish === finish ? approx.url : null;
+  const allImages = variant ? [variant.url] : approxUrl ? [approxUrl] : productImages;
   const activeImage = allImages[activeIdx] ?? allImages[0];
+  // The quote / SMS should carry a real photo, never a data URL.
+  const quoteImage = variant ? variant.url : wheel.imageUrl;
+
+  useEffect(() => {
+    if (!finish || variant || !hasApproximatePreview(finish)) return;
+    let live = true;
+    renderFinishPreview(wheel.imageUrl, finish).then(url => { if (live && url) setApprox({ finish, url }); });
+    return () => { live = false; };
+  }, [finish, variant, wheel.imageUrl]);
   const pickFinish = (f: string | null) => {
     setFinish(f); setActiveIdx(0);
     if (f && caps.length && !cap) setCap(variants.find(v => v.finish === f && v.cap)?.cap ?? null);
@@ -138,7 +151,7 @@ export default function WheelDetailModal({ wheel, onClose }: Props) {
                   />
                   {finish && !variant && (
                     <span className="absolute top-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded">
-                      {finish}: built to order, preview coming
+                      {approxUrl ? `${finish}: approximate preview` : `${finish}: built to order, preview coming`}
                     </span>
                   )}
                   {/* Zoom hint */}
@@ -373,7 +386,7 @@ export default function WheelDetailModal({ wheel, onClose }: Props) {
       {showQuote && (
         <QuoteModal
           key={`${wheel.slug}-${activeImage}`}
-          wheel={{ ...wheel, imageUrl: activeImage }}
+          wheel={{ ...wheel, imageUrl: quoteImage }}
           initialFinish={finish ?? undefined}
           initialCap={variant?.cap ?? cap ?? undefined}
           onClose={() => setShowQuote(false)}

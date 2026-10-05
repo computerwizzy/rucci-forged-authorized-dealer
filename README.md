@@ -14,7 +14,9 @@ Forgiato dealer site (same stack: Next.js app router, Tailwind, Vercel).
   `CHEVROLET_IMPALA_RUCCI_HASHASH_1.jpg`. They are matched to wheels by name and become
   `detail.variants` (finish + center cap) and `detail.vehicles`. Last run: 441 renders on
   215 wheels, 24 car photos. The picker always offers Rucci's seven standard finishes;
-  ones without a render show a swatch and keep the catalog photo.
+  for one without a render, `src/lib/finishPreview.ts` re-colours the catalog photo in the
+  browser (luminance-mapped onto the finish tone, backdrop left alone) and labels it an
+  approximate preview. Quotes always carry the real catalog photo, never the generated one.
 - `npm run upload` pushes those images to Cloudinary (folder `rucci/wheels`) and rewrites
   the JSON with CDN URLs. `public/wheels/` is git-ignored; production serves Cloudinary.
 - The gallery filters by style (5 spoke, 10 spoke, Mesh…). Tapping a wheel opens the
