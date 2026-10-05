@@ -52,3 +52,15 @@ test('quote form opens pre-filled with the chosen finish', async () => {
   expect(screen.getByLabelText(/^finish/i)).toHaveValue('24K Liquid');
   expect(screen.getByLabelText(/center cap/i)).toHaveValue('Large cap');
 });
+
+test('offers every standard finish even without a render, and prefills the quote with it', async () => {
+  const plain: Wheel = { name: 'Plain', series: 'Other', imageUrl: '/wheels/plain-1.png', slug: 'plain', detail: { images: [], specs: {}, gallery: [] } };
+  render(<WheelDetailModal wheel={plain} onClose={jest.fn()} />);
+  const black = screen.getByRole('button', { name: /^Black/ });
+  expect(black).toBeInTheDocument();
+  await userEvent.click(black);
+  expect((screen.getByAltText(/Plain view 1/i) as HTMLImageElement).src).toContain('/wheels/plain-1.png');
+  expect(screen.getByText(/Black: built to order/i)).toBeInTheDocument();
+  await userEvent.click(screen.getByRole('button', { name: /get a quote/i }));
+  expect(screen.getByLabelText(/^finish/i)).toHaveValue('Black');
+});

@@ -100,7 +100,9 @@ async function download(url, file) {
 const MEDIA_API = 'https://www.rucciwheels.com/wp-json/wp/v2/media';
 const VAR_DIR = path.join(OUT_DIR, 'variants');
 const VEH_DIR = path.join(OUT_DIR, 'vehicles');
-const ALIAS = { sizzor: 'scizzor', affiliato: 'affilato', '9elbowz': '9-elbowz', '7elbowz': '7-elbowz' };
+// Library filenames spell some wheels differently from the product slugs.
+const ALIAS = { sizzor: 'scizzor', affiliato: 'affilato', '9elbowz': '9-elbowz', '7elbowz': '7-elbowz',
+  fusions: 'fusion', buff: 'buffs', rolling: 'rollin', scarlett: 'scarlette', block: 'blocko' };
 const COLOR = new Set(('chrome brush brushed black gold liquid blue red white bronze copper silver rose rosegold teal ' +
   'burgundy green yellow chocolate brown purple orange candy twotone two tone polish polished lip accents metallic ' +
   'gunmetal grey gray pink matte satin 18k 24k').split(' '));
@@ -112,6 +114,7 @@ const KNOWN = [
   ['liquid rose gold', 'Liquid Rose Gold'], ['liquid rosegold', 'Liquid Rose Gold'], ['rosegold', 'Rose Gold'],
   ['liquidgold', 'Liquid Gold'], ['liquid gold', 'Liquid Gold'], ['brushed gold', 'Brushed Gold'], ['brush gold', 'Brushed Gold'],
   ['chrome', 'Chrome'], ['brush', 'Brushed'], ['brushed', 'Brushed'], ['black', 'Black'],
+  ['gunmetalgrey', 'Gunmetal Grey'], ['gunmetal', 'Gunmetal'], ['browngold', 'Brown Gold'], ['rosegold', 'Rose Gold'],
 ];
 const compact = s => s.toLowerCase().replace(/[^a-z0-9]/g, '');
 

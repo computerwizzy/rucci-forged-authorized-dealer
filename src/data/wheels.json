@@ -1396,7 +1396,13 @@
       "description": "Expertly forged from aerospace-grade aluminum, each wheel is custom-built to your exact vehicle specifications. Available in two- or three-piece construction, sizes range from 19″ to 34″ with a wide variety of premium finishes. Most wheels are available with either a large or small center cap and can be finished in any custom color combination — with over 150,000 colors available. *\\*Additional images of all styles and cap options coming soon.*",
       "gallery": [],
       "isNew": false,
-      "sourceUrl": "https://www.rucciwheels.com/product/blocko/"
+      "sourceUrl": "https://www.rucciwheels.com/product/blocko/",
+      "variants": [
+        {
+          "finish": "Red / Black barrel",
+          "url": "https://res.cloudinary.com/dd80gev4v/image/upload/v1791241270/rucci/wheels/variants/blocko-redblackbarrel.png"
+        }
+      ]
     }
   },
   {
@@ -1653,6 +1659,10 @@
         {
           "finish": "Brushed",
           "url": "https://res.cloudinary.com/dd80gev4v/image/upload/v1791239391/rucci/wheels/variants/buffs-brushed.png"
+        },
+        {
+          "finish": "Orange / Black barrel",
+          "url": "https://res.cloudinary.com/dd80gev4v/image/upload/v1791241272/rucci/wheels/variants/buffs-orangeblackbarrel.png"
         }
       ]
     }
@@ -3711,7 +3721,13 @@
       "description": "Expertly forged from aerospace-grade aluminum, each wheel is custom-built to your exact vehicle specifications. Available in two- or three-piece construction, sizes range from 19″ to 34″ with a wide variety of premium finishes. Most wheels are available with either a large or small center cap and can be finished in any custom color combination — with over 150,000 colors available. *\\*Additional images of all styles and cap options coming soon.*",
       "gallery": [],
       "isNew": false,
-      "sourceUrl": "https://www.rucciwheels.com/product/fusion/"
+      "sourceUrl": "https://www.rucciwheels.com/product/fusion/",
+      "variants": [
+        {
+          "finish": "Whitecap Brushed",
+          "url": "https://res.cloudinary.com/dd80gev4v/image/upload/v1791241286/rucci/wheels/variants/fusion-whitecapbrushed.png"
+        }
+      ]
     }
   },
   {
@@ -4661,6 +4677,10 @@
         {
           "finish": "Black Gold Accents / Black barrel",
           "url": "https://res.cloudinary.com/dd80gev4v/image/upload/v1791239421/rucci/wheels/variants/ize-blackgoldaccentsblackbarrel.png"
+        },
+        {
+          "finish": "Brown Gold",
+          "url": "https://res.cloudinary.com/dd80gev4v/image/upload/v1791241291/rucci/wheels/variants/ize-browngold.png"
         },
         {
           "finish": "Gold",
@@ -6541,6 +6561,14 @@
         {
           "finish": "Chrome",
           "url": "https://res.cloudinary.com/dd80gev4v/image/upload/v1791239438/rucci/wheels/variants/rollin-chrome.png"
+        },
+        {
+          "finish": "Brushed",
+          "url": "https://res.cloudinary.com/dd80gev4v/image/upload/v1791241304/rucci/wheels/variants/rollin-brushed.png"
+        },
+        {
+          "finish": "Gold",
+          "url": "https://res.cloudinary.com/dd80gev4v/image/upload/v1791241304/rucci/wheels/variants/rollin-gold.png"
         }
       ]
     }
@@ -6611,7 +6639,21 @@
       "description": "Expertly forged from aerospace-grade aluminum, each wheel is custom-built to your exact vehicle specifications. Available in two- or three-piece construction, sizes range from 19″ to 34″ with a wide variety of premium finishes. Most wheels are available with either a large or small center cap and can be finished in any custom color combination — with over 150,000 colors available. *\\*Additional images of all styles and cap options coming soon.*",
       "gallery": [],
       "isNew": false,
-      "sourceUrl": "https://www.rucciwheels.com/product/scarlette/"
+      "sourceUrl": "https://www.rucciwheels.com/product/scarlette/",
+      "variants": [
+        {
+          "finish": "Brushed",
+          "url": "https://res.cloudinary.com/dd80gev4v/image/upload/v1791241305/rucci/wheels/variants/scarlette-brushed.png"
+        },
+        {
+          "finish": "Copper Black",
+          "url": "https://res.cloudinary.com/dd80gev4v/image/upload/v1791241305/rucci/wheels/variants/scarlette-copperblack.png"
+        },
+        {
+          "finish": "Gold / Black barrel",
+          "url": "https://res.cloudinary.com/dd80gev4v/image/upload/v1791241305/rucci/wheels/variants/scarlette-goldblackbarrel.png"
+        }
+      ]
     }
   },
   {
@@ -7574,7 +7616,13 @@
       "description": "Expertly forged from aerospace-grade aluminum, each wheel is custom-built to your exact vehicle specifications. Available in two- or three-piece construction, sizes range from 19″ to 34″ with a wide variety of premium finishes. Most wheels are available with either a large or small center cap and can be finished in any custom color combination — with over 150,000 colors available. *\\*Additional images of all styles and cap options coming soon.*",
       "gallery": [],
       "isNew": false,
-      "sourceUrl": "https://www.rucciwheels.com/product/throttle/"
+      "sourceUrl": "https://www.rucciwheels.com/product/throttle/",
+      "variants": [
+        {
+          "finish": "Gunmetal Grey / Black barrel",
+          "url": "https://res.cloudinary.com/dd80gev4v/image/upload/v1791241311/rucci/wheels/variants/throttle-gunmetalgreyblackbarrel.png"
+        }
+      ]
     }
   },
   {

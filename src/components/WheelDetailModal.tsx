@@ -11,6 +11,18 @@ interface Props {
 
 interface Lightbox { images: string[]; idx: number; }
 
+// Rucci's standard finishes, in catalog order, with a swatch for the ones that have no render yet.
+const STANDARD_FINISHES = ['Chrome', 'Brushed', 'Black', '18K Liquid', '18K Brushed Gold', '24K Liquid', '24K Brushed Gold'];
+const SWATCH: Record<string, string> = {
+  'Chrome': 'linear-gradient(135deg,#f4f4f4 0%,#9a9a9a 45%,#e8e8e8 60%,#7a7a7a 100%)',
+  'Brushed': 'linear-gradient(90deg,#b9b9b9,#d6d6d6 30%,#a8a8a8 55%,#cfcfcf)',
+  'Black': 'linear-gradient(135deg,#2a2a2a,#050505)',
+  '18K Liquid': 'linear-gradient(135deg,#f6dc8a,#c9961f 55%,#f2d26b)',
+  '18K Brushed Gold': 'linear-gradient(90deg,#c9a24a,#e3c472 35%,#b9923c 60%,#dcbb62)',
+  '24K Liquid': 'linear-gradient(135deg,#ffe28a,#e0a800 55%,#ffd75e)',
+  '24K Brushed Gold': 'linear-gradient(90deg,#d8ae2e,#f0cc63 35%,#c99f27 60%,#ebc659)',
+};
+
 export default function WheelDetailModal({ wheel, onClose }: Props) {
   const [activeIdx, setActiveIdx]   = useState(0);
   const [showQuote, setShowQuote]   = useState(false);
@@ -21,7 +33,11 @@ export default function WheelDetailModal({ wheel, onClose }: Props) {
 
   const detail    = wheel.detail;
   const variants  = detail?.variants ?? [];
-  const finishes  = [...new Set(variants.map(v => v.finish))];
+  // Every wheel gets the standard finishes (Rucci builds any of them to order); renders add
+  // custom colours on top. Finishes without a render keep the catalog photo and show a swatch.
+  const rendered  = new Set(variants.map(v => v.finish));
+  const finishes  = [...STANDARD_FINISHES, ...variants.map(v => v.finish).filter(f => !STANDARD_FINISHES.includes(f))]
+    .filter((f, i, arr) => arr.indexOf(f) === i);
   const caps      = [...new Set(variants.filter(v => v.cap).map(v => v.cap as string))];
   const variant   = finish
     ? (variants.find(v => v.finish === finish && (!caps.length || !cap || v.cap === cap))
@@ -120,6 +136,11 @@ export default function WheelDetailModal({ wheel, onClose }: Props) {
                     className="object-contain p-6"
                     sizes="(max-width: 1024px) 90vw, 45vw"
                   />
+                  {finish && !variant && (
+                    <span className="absolute top-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded">
+                      {finish}: built to order, preview coming
+                    </span>
+                  )}
                   {/* Zoom hint */}
                   <span className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
                     Click to zoom
@@ -147,7 +168,7 @@ export default function WheelDetailModal({ wheel, onClose }: Props) {
                 {finishes.length > 0 && (
                   <div className="mb-3" data-testid="finish-picker">
                     <p className="text-zinc-400 text-[11px] uppercase tracking-widest mb-2">
-                      Finishes <span className="text-zinc-600">· {finishes.length} shown, any colour available</span>
+                      Finishes <span className="text-zinc-600">· {rendered.size ? `${rendered.size} with preview, ` : ''}any colour available</span>
                     </p>
                     <div className="flex flex-wrap gap-1.5">
                       <button
@@ -161,8 +182,13 @@ export default function WheelDetailModal({ wheel, onClose }: Props) {
                           type="button"
                           onClick={() => pickFinish(f)}
                           aria-pressed={finish === f}
-                          className={`px-2.5 py-1 rounded-md text-xs font-semibold border transition-colors ${finish === f ? 'bg-red-700 border-red-700 text-white' : 'bg-zinc-800 border-zinc-600 text-zinc-300 hover:border-red-500'}`}
-                        >{f}</button>
+                          title={rendered.has(f) ? `${f} — preview available` : `${f} — built to order, no preview yet`}
+                          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold border transition-colors ${finish === f ? 'bg-red-700 border-red-700 text-white' : 'bg-zinc-800 border-zinc-600 text-zinc-300 hover:border-red-500'}`}
+                        >
+                          {SWATCH[f] && <span aria-hidden="true" className="inline-block w-3 h-3 rounded-full border border-black/40" style={{ background: SWATCH[f] }} />}
+                          {f}
+                          {!rendered.has(f) && <span className="sr-only"> (no preview)</span>}
+                        </button>
                       ))}
                     </div>
                     {finish && caps.length > 1 && (
@@ -348,8 +374,8 @@ export default function WheelDetailModal({ wheel, onClose }: Props) {
         <QuoteModal
           key={`${wheel.slug}-${activeImage}`}
           wheel={{ ...wheel, imageUrl: activeImage }}
-          initialFinish={variant?.finish}
-          initialCap={variant?.cap}
+          initialFinish={finish ?? undefined}
+          initialCap={variant?.cap ?? cap ?? undefined}
           onClose={() => setShowQuote(false)}
         />
       )}
