@@ -43,10 +43,14 @@ test('posts to the shared Google Sheet with the Rucci tab name', async () => {
   process.env.GOOGLE_SHEETS_URL = 'https://script.google.com/macros/s/test/exec';
   const fetchMock = jest.fn().mockResolvedValue({ ok: true, json: async () => ({}) });
   global.fetch = fetchMock as unknown as typeof fetch;
-  await POST(makeRequest({ ...VALID_BODY, finishPreference: 'Chrome', sizePreference: '26"' }));
+  await POST(makeRequest({ ...VALID_BODY, finishPreference: 'Chrome', sizePreference: '26"', centerCap: 'Large cap', needTires: 'No, just the wheels', message: 'lifted 4in' }));
   const [, init] = fetchMock.mock.calls[0];
   const sent = JSON.parse((init as RequestInit).body as string);
   expect(sent.sheet).toBe('Rucci');
   expect(sent.finishPreference).toBe('Chrome');
+  // shared Forgiato tab: brand on the wheel name, Rucci-only options folded into the notes column
+  expect(sent.wheelName).toBe("RUCCI D'Uno");
+  expect(sent.message).toBe('Center cap: Large cap · Tires: No, just the wheels\nlifted 4in');
+  expect(sent.centerCap).toBe('Large cap');
   delete process.env.GOOGLE_SHEETS_URL;
 });

@@ -17,6 +17,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid submission' }, { status: 422 });
   }
 
+  // The shared Apps Script was written for the Forgiato site and only knows its columns.
+  // Rows from here land in the same tab, so the brand goes on the wheel name and the
+  // Rucci-only build options are folded into the notes column; the separate fields are
+  // still sent for when the script learns about them.
+  const buildNotes = [
+    body.centerCap ? `Center cap: ${body.centerCap}` : '',
+    body.staggered ? `Staggered: ${body.staggered}` : '',
+    body.colorCode ? `Color code: ${body.colorCode}` : '',
+    body.bigBrakes ? `Big brakes: ${body.bigBrakes}` : '',
+    body.needTires ? `Tires: ${body.needTires}` : '',
+  ].filter(Boolean).join(' · ');
+  const sheetMessage = [buildNotes, body.message ?? ''].filter(Boolean).join('\n');
+
   const sheetsUrl = process.env.GOOGLE_SHEETS_URL;
   if (sheetsUrl) {
     try {
@@ -29,7 +42,7 @@ export async function POST(req: NextRequest) {
           // into the "Rucci" tab of the shared workbook.
           sheet: 'Rucci',
           brand: 'Rucci Forged',
-          wheelName,
+          wheelName: `RUCCI ${wheelName}`,
           wheelImageUrl: wheelImageUrl ?? '',
           name,
           email,
@@ -44,7 +57,7 @@ export async function POST(req: NextRequest) {
           staggered: body.staggered ?? '',
           bigBrakes: body.bigBrakes ?? '',
           needTires: body.needTires ?? '',
-          message: body.message ?? '',
+          message: sheetMessage,
         }),
       });
     } catch (err) {
