@@ -10,6 +10,13 @@
  *                                     by scripts/upload-to-cloudinary.js)
  *   src/data/wheels.json            — [{ name, series, imageUrl, slug, detail }]
  *
+ * Phase 2 reads Rucci's public media library (wp/v2/media). The product records carry
+ * ONE photo each, but the library holds finish renders named like
+ * "ace20big20cap2024k20gold20brush20_web.png" (a lost "%20" between words) or
+ * "Trapstar-Copper-Red-ChromeBarrel.png", plus car photos named
+ * "CHEVROLET_IMPALA_RUCCI_HASHASH_1.jpg". Those become detail.variants (finish / cap
+ * renders) and detail.vehicles (on-car photos).
+ *
  * Resumable: images already on disk are not downloaded again.
  */
 const fs = require('fs');
@@ -88,6 +95,130 @@ async function download(url, file) {
   }
 }
 
+
+// ─── Phase 2: finish renders + car photos from the media library ───────────────
+const MEDIA_API = 'https://www.rucciwheels.com/wp-json/wp/v2/media';
+const VAR_DIR = path.join(OUT_DIR, 'variants');
+const VEH_DIR = path.join(OUT_DIR, 'vehicles');
+const ALIAS = { sizzor: 'scizzor', affiliato: 'affilato', '9elbowz': '9-elbowz', '7elbowz': '7-elbowz' };
+const COLOR = new Set(('chrome brush brushed black gold liquid blue red white bronze copper silver rose rosegold teal ' +
+  'burgundy green yellow chocolate brown purple orange candy twotone two tone polish polished lip accents metallic ' +
+  'gunmetal grey gray pink matte satin 18k 24k').split(' '));
+const NOISE = /^(web|scaled|copy|copyright\d*|beauty|st2|\d{3,4}x\d{3,4}|\d+|large\d*|new|img|rucci|wheels|sw|rd|v2)$/i;
+const KNOWN = [
+  ['24k gold brush', '24K Brushed Gold'], ['18k gold brush', '18K Brushed Gold'],
+  ['24k brushed gold', '24K Brushed Gold'], ['18k brushed gold', '18K Brushed Gold'],
+  ['24k gold', '24K Liquid'], ['18k gold', '18K Liquid'],
+  ['liquid rose gold', 'Liquid Rose Gold'], ['liquid rosegold', 'Liquid Rose Gold'], ['rosegold', 'Rose Gold'],
+  ['liquidgold', 'Liquid Gold'], ['liquid gold', 'Liquid Gold'], ['brushed gold', 'Brushed Gold'], ['brush gold', 'Brushed Gold'],
+  ['chrome', 'Chrome'], ['brush', 'Brushed'], ['brushed', 'Brushed'], ['black', 'Black'],
+];
+const compact = s => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+function wordsOf(fn) {
+  fn = fn.replace(/\.(png|webp|jpe?g)$/i, '');
+  fn = fn.replace(/([a-z])20(?=[a-z0-9])/g, '$1-');      // lost %20 between words
+  fn = fn.replace(/([0-9])20(?=[a-z])/g, '$1-');          // "42020small" -> "420-small"
+  fn = fn.replace(/(k)20(?=[a-z])/g, '$1-');
+  fn = fn.replace(/([a-z])20(?=[_\-.]|$)/g, '$1');        // trailing lost %20 before "_web"
+  fn = fn.replace(/([a-z])(?=[A-Z])/g, '$1-');            // ChromeBarrel -> Chrome-Barrel
+  fn = fn.replace(/([a-z])barrel\b/gi, '$1-barrel');      // chromebarrel -> chrome-barrel
+  return fn.split(/[-_ .]+/).filter(Boolean);
+}
+function stripBarrel(words) {
+  const out = []; let barrel = null, cap = null;
+  for (let i = 0; i < words.length; i++) {
+    const w = words[i].toLowerCase();
+    if (w === 'barrel' && out.length) { barrel = out.pop(); continue; }
+    if (w === 'bigcap' || w === 'smallcap') { cap = w === 'bigcap' ? 'Large cap' : 'Small cap'; continue; }
+    if ((w === 'big' || w === 'small') && (words[i + 1] || '').toLowerCase() === 'cap') { cap = w === 'big' ? 'Large cap' : 'Small cap'; i++; continue; }
+    out.push(w);
+  }
+  return { rest: out, barrel, cap };
+}
+function finishLabel(words) {
+  const s = words.join(' ');
+  for (const [k, v] of KNOWN) if (s === k) return v;
+  if (!words.some(w => COLOR.has(w))) return null;
+  return words.map(w => (w === '18k' || w === '24k') ? w.toUpperCase() : w[0].toUpperCase() + w.slice(1)).join(' ');
+}
+
+async function fetchMedia() {
+  const all = [];
+  for (let page = 1; page < 40; page++) {
+    let list;
+    try {
+      list = JSON.parse(await get(`${MEDIA_API}?per_page=100&page=${page}&_fields=id,source_url,media_type,mime_type`));
+    } catch (e) { if (/HTTP 400/.test(e.message)) break; throw e; }
+    if (!Array.isArray(list) || !list.length) break;
+    all.push(...list);
+    await sleep(700);
+  }
+  return all.filter(m => m.media_type === 'image' && m.mime_type !== 'image/svg+xml');
+}
+
+async function attachMedia(wheels) {
+  console.log('Fetching Rucci media library…');
+  const media = await fetchMedia();
+  console.log(`  ${media.length} images in the library`);
+  const bySlugKey = new Map(wheels.map(w => [compact(w.slug), w]));
+  for (const [a, b] of Object.entries(ALIAS)) if (bySlugKey.has(compact(b))) bySlugKey.set(compact(a), bySlugKey.get(compact(b)));
+  fs.mkdirSync(VAR_DIR, { recursive: true }); fs.mkdirSync(VEH_DIR, { recursive: true });
+  for (const w of wheels) { w.detail.variants = []; w.detail.vehicles = []; }
+
+  let nVar = 0, nVeh = 0;
+  for (const m of media) {
+    const fn = m.source_url.split('/').pop();
+    const ext = (path.extname(fn) || '.png').toLowerCase();
+    const veh = fn.match(/^([A-Z]+)_([A-Z0-9-]+)_RUCCI_([A-Z0-9-]+)_(\d+)\./);
+    if (veh) {
+      const w = bySlugKey.get(compact(veh[3]));
+      if (!w) continue;
+      const file = path.join(VEH_DIR, `${w.slug}-${veh[1].toLowerCase()}-${veh[2].toLowerCase()}-${veh[4]}${ext}`);
+      if (await download(m.source_url, file)) {
+        const vehicle = `${veh[1]} ${veh[2].replace(/-/g, ' ')}`.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+        w.detail.vehicles.push({ url: `/wheels/vehicles/${path.basename(file)}`, vehicle });
+        nVeh++;
+      }
+      await sleep(120);
+      continue;
+    }
+    let words = wordsOf(fn);
+    if (words[0] && words[0].toLowerCase() === 'rucci') words = words.slice(1);
+    if (words[0] && words[0].toLowerCase() === 'wheels') words = words.slice(1);
+    let w = null, rest = [];
+    for (let n = Math.min(3, words.length); n > 0; n--) {
+      const hit = bySlugKey.get(compact(words.slice(0, n).join('')));
+      if (hit) { w = hit; rest = words.slice(n); break; }
+    }
+    if (!w) continue;
+    rest = rest.filter(x => !NOISE.test(x));
+    const sb = stripBarrel(rest);
+    if (!sb.rest.length) continue;                       // plain alternate shot, product images cover it
+    let label = finishLabel(sb.rest.map(x => x.toLowerCase()));
+    if (!label) continue;
+    if (sb.barrel && sb.barrel.toLowerCase() !== 'chrome') label += ` / ${sb.barrel[0].toUpperCase() + sb.barrel.slice(1)} barrel`;
+    const key = compact(label + (sb.cap || ''));
+    const file = path.join(VAR_DIR, `${w.slug}-${key}${ext}`);
+    if (await download(m.source_url, file)) {
+      w.detail.variants.push({ finish: label, cap: sb.cap || undefined, url: `/wheels/variants/${path.basename(file)}` });
+      nVar++;
+    }
+    await sleep(120);
+  }
+  for (const w of wheels) {
+    // stable order: catalog finishes first (Chrome, Brushed, Black, golds), large cap before small
+    const rank = f => { const i = ['Chrome', 'Brushed', 'Black', '18K Liquid', '18K Brushed Gold', '24K Liquid', '24K Brushed Gold'].indexOf(f); return i < 0 ? 99 : i; };
+    const seen = new Set();
+    w.detail.variants = w.detail.variants.filter(v => !seen.has(v.url) && seen.add(v.url));
+    w.detail.variants.sort((a, b) => rank(a.finish) - rank(b.finish) || a.finish.localeCompare(b.finish) || String(a.cap).localeCompare(String(b.cap)));
+    if (!w.detail.variants.length) delete w.detail.variants;
+    if (!w.detail.vehicles.length) delete w.detail.vehicles;
+  }
+  const multi = wheels.filter(w => w.detail.variants && new Set(w.detail.variants.map(v => v.finish)).size > 1).length;
+  console.log(`  ${nVar} finish renders on ${wheels.filter(w => w.detail.variants).length} wheels (${multi} with 2+ finishes), ${nVeh} car photos`);
+}
+
 async function main() {
   fs.mkdirSync(OUT_DIR, { recursive: true });
   console.log('Fetching Rucci catalog…');
@@ -142,6 +273,7 @@ async function main() {
     }
   }
   wheels.sort((a, b) => a.name.localeCompare(b.name));
+  await attachMedia(wheels);
   fs.writeFileSync(DATA_FILE, JSON.stringify(wheels, null, 2));
   console.log(`✓ ${wheels.length} wheels → src/data/wheels.json`);
 }

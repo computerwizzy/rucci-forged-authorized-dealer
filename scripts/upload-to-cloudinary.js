@@ -76,6 +76,8 @@ function applyMap(wheels, map) {
       out.detail = { ...out.detail };
       if (out.detail.images)  out.detail.images  = out.detail.images.map(u => map.get(u) ?? u);
       if (out.detail.gallery) out.detail.gallery = out.detail.gallery.map(u => map.get(u) ?? u);
+      if (out.detail.variants) out.detail.variants = out.detail.variants.map(v => ({ ...v, url: map.get(v.url) ?? v.url }));
+      if (out.detail.vehicles) out.detail.vehicles = out.detail.vehicles.map(v => ({ ...v, url: map.get(v.url) ?? v.url }));
     }
     return out;
   });
@@ -91,6 +93,8 @@ async function main() {
     if (w.detail) {
       for (const u of w.detail.images  ?? []) if (!isCloudinaryUrl(u)) needed.add(u);
       for (const u of w.detail.gallery ?? []) if (!isCloudinaryUrl(u)) needed.add(u);
+      for (const v of w.detail.variants ?? []) if (!isCloudinaryUrl(v.url)) needed.add(v.url);
+      for (const v of w.detail.vehicles ?? []) if (!isCloudinaryUrl(v.url)) needed.add(v.url);
     }
   }
 

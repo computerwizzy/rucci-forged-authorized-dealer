@@ -3,7 +3,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import { Wheel } from '@/types';
 
-interface Props { wheel: Wheel; onClose: () => void; }
+interface Props { wheel: Wheel; onClose: () => void; initialFinish?: string; initialCap?: string; }
 
 const CURRENT_YEAR = new Date().getFullYear();
 const YEARS = Array.from({ length: 30 }, (_, i) => String(CURRENT_YEAR - i));
@@ -33,7 +33,7 @@ const inputCls = 'w-full bg-zinc-800 border border-zinc-600 rounded px-3 py-2 te
 const inputErrCls = 'w-full bg-zinc-800 border border-red-500 rounded px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-red-400 transition-colors';
 const labelCls = 'block text-zinc-300 text-sm mb-1';
 
-export default function QuoteModal({ wheel, onClose }: Props) {
+export default function QuoteModal({ wheel, onClose, initialFinish, initialCap }: Props) {
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -42,9 +42,10 @@ export default function QuoteModal({ wheel, onClose }: Props) {
     vehicleMake: '',
     vehicleModel: '',
     sizePreference: '',
-    finishPreference: '',
-    colorCode: '',
-    centerCap: '',
+    // A catalog finish pre-selects itself; a custom render colour goes in as a colour match.
+    finishPreference: initialFinish ? (FINISHES.includes(initialFinish) ? initialFinish : 'Color match / custom') : '',
+    colorCode: initialFinish && !FINISHES.includes(initialFinish) ? initialFinish : '',
+    centerCap: initialCap && CENTER_CAPS.includes(initialCap) ? initialCap : '',
     staggered: '',
     bigBrakes: '',
     needTires: '',

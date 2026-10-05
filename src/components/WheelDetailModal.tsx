@@ -15,12 +15,27 @@ export default function WheelDetailModal({ wheel, onClose }: Props) {
   const [activeIdx, setActiveIdx]   = useState(0);
   const [showQuote, setShowQuote]   = useState(false);
   const [lightbox, setLightbox]     = useState<Lightbox | null>(null);
+  // Finish / cap picker (renders from Rucci's media library). null = the product photos.
+  const [finish, setFinish]         = useState<string | null>(null);
+  const [cap, setCap]               = useState<string | null>(null);
 
   const detail    = wheel.detail;
-  const allImages = detail?.images?.length
+  const variants  = detail?.variants ?? [];
+  const finishes  = [...new Set(variants.map(v => v.finish))];
+  const caps      = [...new Set(variants.filter(v => v.cap).map(v => v.cap as string))];
+  const variant   = finish
+    ? (variants.find(v => v.finish === finish && (!caps.length || !cap || v.cap === cap))
+       ?? variants.find(v => v.finish === finish) ?? null)
+    : null;
+  const productImages = detail?.images?.length
     ? [wheel.imageUrl, ...detail.images]
     : [wheel.imageUrl];
-  const activeImage = allImages[activeIdx] ?? wheel.imageUrl;
+  const allImages = variant ? [variant.url] : productImages;
+  const activeImage = allImages[activeIdx] ?? allImages[0];
+  const pickFinish = (f: string | null) => {
+    setFinish(f); setActiveIdx(0);
+    if (f && caps.length && !cap) setCap(variants.find(v => v.finish === f && v.cap)?.cap ?? null);
+  };
 
   // Gallery: exclude images already shown in the carousel (same filename)
   const carouselNames = new Set(allImages.map(s => s.split('/').pop()));
@@ -52,6 +67,8 @@ export default function WheelDetailModal({ wheel, onClose }: Props) {
   const handleBackdrop = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) onClose();
   }, [onClose]);
+
+  const vehicles = detail?.vehicles ?? [];
 
   const specEntries = detail
     ? [
@@ -126,6 +143,45 @@ export default function WheelDetailModal({ wheel, onClose }: Props) {
                   )}
                 </button>
 
+                {/* Finish / cap picker */}
+                {finishes.length > 0 && (
+                  <div className="mb-3" data-testid="finish-picker">
+                    <p className="text-zinc-400 text-[11px] uppercase tracking-widest mb-2">
+                      Finishes <span className="text-zinc-600">· {finishes.length} shown, any colour available</span>
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => pickFinish(null)}
+                        className={`px-2.5 py-1 rounded-md text-xs font-semibold border transition-colors ${finish === null ? 'bg-red-700 border-red-700 text-white' : 'bg-zinc-800 border-zinc-600 text-zinc-300 hover:border-red-500'}`}
+                      >Catalog photo</button>
+                      {finishes.map(f => (
+                        <button
+                          key={f}
+                          type="button"
+                          onClick={() => pickFinish(f)}
+                          aria-pressed={finish === f}
+                          className={`px-2.5 py-1 rounded-md text-xs font-semibold border transition-colors ${finish === f ? 'bg-red-700 border-red-700 text-white' : 'bg-zinc-800 border-zinc-600 text-zinc-300 hover:border-red-500'}`}
+                        >{f}</button>
+                      ))}
+                    </div>
+                    {finish && caps.length > 1 && (
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className="text-zinc-500 text-xs">Center cap:</span>
+                        {caps.map(c => (
+                          <button
+                            key={c}
+                            type="button"
+                            onClick={() => { setCap(c); setActiveIdx(0); }}
+                            aria-pressed={cap === c}
+                            className={`px-2.5 py-1 rounded-md text-xs font-semibold border transition-colors ${cap === c ? 'bg-zinc-200 border-zinc-200 text-black' : 'bg-zinc-800 border-zinc-600 text-zinc-300 hover:border-zinc-400'}`}
+                          >{c}</button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Thumbnails */}
                 {allImages.length > 1 && (
                   <div className="flex gap-2 overflow-x-auto pb-1">
@@ -184,7 +240,27 @@ export default function WheelDetailModal({ wheel, onClose }: Props) {
             </div>
 
             {/* ── Car Gallery ── */}
-            {gallery.length > 0 && (
+            {vehicles.length > 0 && (
+              <div className="mt-8 pt-8 border-t border-zinc-700">
+                <h3 className="text-white font-semibold text-sm uppercase tracking-widest mb-4">On Vehicles</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                  {vehicles.map((v, i) => (
+                    <button
+                      key={v.url}
+                      onClick={() => setLightbox({ images: vehicles.map(x => x.url), idx: i })}
+                      className="text-left group cursor-zoom-in"
+                      aria-label={`${wheel.name} on ${v.vehicle}`}
+                    >
+                      <div className="relative aspect-video bg-zinc-800 rounded-lg overflow-hidden">
+                        <Image src={v.url} alt={`${wheel.name} on ${v.vehicle}`} fill className="object-cover transition-transform duration-300 group-hover:scale-105" sizes="(max-width: 640px) 45vw, (max-width: 1024px) 30vw, 22vw" />
+                      </div>
+                      <p className="text-zinc-400 text-xs mt-1.5">{v.vehicle}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {vehicles.length === 0 && gallery.length > 0 && (
               <div className="mt-8 pt-8 border-t border-zinc-700">
                 <h3 className="text-white font-semibold text-sm uppercase tracking-widest mb-4">
                   On Vehicles
@@ -272,6 +348,8 @@ export default function WheelDetailModal({ wheel, onClose }: Props) {
         <QuoteModal
           key={`${wheel.slug}-${activeImage}`}
           wheel={{ ...wheel, imageUrl: activeImage }}
+          initialFinish={variant?.finish}
+          initialCap={variant?.cap}
           onClose={() => setShowQuote(false)}
         />
       )}

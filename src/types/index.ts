@@ -12,8 +12,18 @@ export interface WheelDetail {
   };
   description?: string;
   gallery: string[];
+  /** Finish / center-cap renders from Rucci's media library (phase 2 of scripts/fetch-rucci.js). */
+  variants?: WheelVariant[];
+  /** Photos of the wheel on customer cars, with the vehicle named. */
+  vehicles?: { url: string; vehicle: string }[];
   isNew?: boolean;
   sourceUrl?: string;
+}
+
+export interface WheelVariant {
+  finish: string;
+  cap?: string;
+  url: string;
 }
 
 export interface Wheel {
