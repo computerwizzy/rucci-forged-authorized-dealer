@@ -4,7 +4,8 @@
   python3 import-products.py --dry            list what would be created
   python3 import-products.py --only casket    one wheel (by slug)
   python3 import-products.py                  all wheels
-  python3 import-products.py --activate       set every Rucci product ACTIVE (after the theme is ready)
+  python3 import-products.py --activate       set every Rucci product ACTIVE + template 'quote' (after the theme is ready)
+  python3 import-products.py --meta-only      re-send metafields/tags/description for existing products
 
 Products are created as DRAFT so the store never shows a $0 wheel before the quote
 template is live. Idempotent: a product is matched by handle "rucci-<slug>".
@@ -64,6 +65,9 @@ def product_input(w):
     metafields = [
         {'namespace': 'custom', 'key': 'quote_only', 'type': 'boolean', 'value': 'true'},
         {'namespace': 'custom', 'key': 'rucci_styles', 'type': 'list.single_line_text_field', 'value': json.dumps(styles)},
+        # Cloudinary copy of the catalog photo: CORS-enabled, so the theme's approximate finish
+        # preview can read its pixels (Shopify's CDN copy may not allow that).
+        {'namespace': 'custom', 'key': 'rucci_image', 'type': 'url', 'value': w['imageUrl']},
     ]
     if d.get('variants'): metafields.append({'namespace': 'custom', 'key': 'rucci_variants', 'type': 'json', 'value': json.dumps(d['variants'])})
     if d.get('vehicles'): metafields.append({'namespace': 'custom', 'key': 'rucci_vehicles', 'type': 'json', 'value': json.dumps(d['vehicles'])})
@@ -108,10 +112,20 @@ def main():
         n = 0
         for w in wheels:
             ex = find('rucci-' + w['slug'])
-            if ex and ex['status'] != 'ACTIVE':
-                gql('mutation($p: ProductInput!){ productUpdate(input:$p){ userErrors{ field message } } }', {'p': {'id': ex['id'], 'status': 'ACTIVE'}}); n += 1
+            if ex:
+                gql('mutation($p: ProductInput!){ productUpdate(input:$p){ userErrors{ field message } } }', {'p': {'id': ex['id'], 'status': 'ACTIVE', 'templateSuffix': TEMPLATE}}); n += 1
                 time.sleep(0.3)
         print('activated', n); return
+    if '--meta-only' in sys.argv:
+        n = 0
+        for w in wheels:
+            ex = find('rucci-' + w['slug'])
+            if not ex: continue
+            pin = product_input(w); pin['id'] = ex['id']; pin.pop('status', None); pin.pop('handle', None); pin.pop('templateSuffix', None)
+            r = gql('mutation($p: ProductInput!){ productUpdate(input:$p){ userErrors{ field message } } }', {'p': pin})['productUpdate']
+            if r['userErrors']: print('  ', w['slug'], r['userErrors'])
+            n += 1; time.sleep(0.4)
+        print('metafields refreshed on', n); return
     if '--dry' in sys.argv:
         for w in wheels: print('would create rucci-%s | %s | %d photos | %d renders' % (w['slug'], w['name'], 1 + len(w['detail'].get('images', [])), len(w['detail'].get('variants', []))))
         return

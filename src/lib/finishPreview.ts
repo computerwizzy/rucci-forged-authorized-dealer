@@ -73,10 +73,10 @@ async function draw(src: string, tone: Tone): Promise<string | null> {
   const [tr, tg, tb] = tone.rgb;
   for (let i = 0; i < px.length; i += 4) {
     const a = px[i + 3];
-    if (a === 0) continue;
+    if (a < 250) continue;   // transparent or translucent (soft shadow / gradient overlay): leave as is
     const r = px[i], g = px[i + 1], b = px[i + 2];
     const sat = Math.max(r, g, b) - Math.min(r, g, b);
-    if (whiteBackdrop && r > 238 && g > 238 && b > 238 && sat < 10) continue;   // backdrop
+    if (whiteBackdrop && Math.min(r, g, b) > 200 && sat < 14) continue;   // backdrop, incl. its soft grey fade
     let l = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
     l = Math.pow(l, tone.gamma);
     l = Math.min(1, Math.max(0, (l - 0.5) * tone.contrast + 0.5));
