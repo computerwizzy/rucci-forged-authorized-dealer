@@ -1,12 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { QuoteFormData } from '@/types';
 
+// The quote form also runs inside the Shopify store (product.quote template), which posts
+// here from the store's origin. Only those origins may call this route cross-site.
+const ALLOWED_ORIGINS = new Set([
+  'https://www.wheelsbelowretail.com',
+  'https://wheelsbelowretail.com',
+  'https://rines-and-wheels.myshopify.com',
+]);
+function corsHeaders(req: NextRequest): Record<string, string> {
+  const origin = req.headers.get('origin') ?? '';
+  if (!ALLOWED_ORIGINS.has(origin)) return {};
+  return {
+    'Access-Control-Allow-Origin': origin,
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Vary': 'Origin',
+  };
+}
+export async function OPTIONS(req: NextRequest) {
+  return new NextResponse(null, { status: 204, headers: corsHeaders(req) });
+}
+
 export async function POST(req: NextRequest) {
+  const cors = corsHeaders(req);
   const body: Partial<QuoteFormData> = await req.json();
   const { wheelName, wheelImageUrl, name, email, phone, vehicleYear, vehicleMake, vehicleModel } = body;
 
   if (!wheelName || !name || !email || !phone || !vehicleYear || !vehicleMake || !vehicleModel) {
-    return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    return NextResponse.json({ error: 'Missing required fields' }, { status: 400, headers: cors });
   }
 
   // Block bots: phone must be at least 10 digits, name must be letters only
@@ -14,7 +36,7 @@ export async function POST(req: NextRequest) {
   const validPhone = phoneDigits.length >= 10;
   const validName = name.trim().length >= 5 && /^[a-zA-ZÀ-ÖØ-öø-ÿ'\-]+(\s+[a-zA-ZÀ-ÖØ-öø-ÿ'\-]+)+$/.test(name.trim());
   if (!validPhone || !validName) {
-    return NextResponse.json({ error: 'Invalid submission' }, { status: 422 });
+    return NextResponse.json({ error: 'Invalid submission' }, { status: 422, headers: cors });
   }
 
   // The shared Apps Script was written for the Forgiato site and only knows its columns.
@@ -126,5 +148,5 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ success: true }, { headers: cors });
 }
